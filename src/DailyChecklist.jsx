@@ -1,6 +1,8 @@
 
 // src/DailyChecklist.jsx
 import { useState } from "react";
+import Calendar from "react-calendar";
+import 'react-calendar/dist/Calendar.css';
 
 const checklistItems = [
   {
@@ -17,20 +19,16 @@ const checklistItems = [
   },
 ];
 
-const getTodayKey = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-};
+const formatDateKey = (date) =>
+  `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 
-const getTodayLabel = () => {
-  const now = new Date();
-  return now.toLocaleDateString("ko-KR", {
+const getTodayLabel = (date) =>
+  date.toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     weekday: "long",
   });
-};
 
 const getInitialState = () => {
   const saved = localStorage.getItem("checklist");
@@ -39,18 +37,25 @@ const getInitialState = () => {
 
 export default function DailyChecklist() {
   const [checked, setChecked] = useState(getInitialState());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
 
-  const todayKey = getTodayKey();
-  const todayLabel = getTodayLabel();
+  const dateKey = formatDateKey(selectedDate);
+  const today = new Date();
+  const todayKey = formatDateKey(today);
+  const todayLabel = getTodayLabel(today);
+  const selectedLabel = getTodayLabel(selectedDate);
+
+  const isToday = dateKey === todayKey;
 
   const toggleCheck = (section, item) => {
     const newState = {
       ...checked,
-      [todayKey]: {
-        ...(checked[todayKey] || {}),
+      [dateKey]: {
+        ...(checked[dateKey] || {}),
         [section]: {
-          ...((checked[todayKey] || {})[section] || {}),
-          [item]: !((checked[todayKey] || {})[section]?.[item]),
+          ...((checked[dateKey] || {})[section] || {}),
+          [item]: !((checked[dateKey] || {})[section]?.[item]),
         },
       },
     };
@@ -58,71 +63,41 @@ export default function DailyChecklist() {
     localStorage.setItem("checklist", JSON.stringify(newState));
   };
 
-  const resetToday = () => {
-    const newState = { ...checked, [todayKey]: {} };
+  const resetDate = () => {
+    const newState = { ...checked, [dateKey]: {} };
     setChecked(newState);
     localStorage.setItem("checklist", JSON.stringify(newState));
   };
 
   const getProgress = () => {
-    const today = checked[todayKey] || {};
+    const selected = checked[dateKey] || {};
     const total = checklistItems.reduce((sum, section) => sum + section.items.length, 0);
     const done = checklistItems.reduce((sum, section) => {
       return (
         sum +
-        section.items.filter((item) => today[section.time]?.[item]).length
+        section.items.filter((item) => selected[section.time]?.[item]).length
       );
     }, 0);
     return ((done / total) * 100).toFixed(2);
   };
 
-  const renderStats = () => {
-    const dates = Object.keys(checked);
-    const today = getTodayKey();
-
-    let weekDone = 0, weekTotal = 0;
-    let monthDone = 0, monthTotal = 0;
-
-    const now = new Date();
-    const nowDay = now.getDate();
-    const nowMonth = now.getMonth() + 1;
-    const nowYear = now.getFullYear();
-
-    for (const date of dates) {
-      const [year, month, day] = date.split("-").map(Number);
-      const total = checklistItems.reduce((sum, s) => sum + s.items.length, 0);
-      const done = checklistItems.reduce((sum, s) => {
-        return sum + s.items.filter(i => checked[date]?.[s.time]?.[i]).length;
-      }, 0);
-
-      if (year === nowYear && month === nowMonth) {
-        monthDone += done;
-        monthTotal += total;
-
-        if (Math.abs(nowDay - day) < 7) {
-          weekDone += done;
-          weekTotal += total;
-        }
-      }
-    }
-
-    const weekProgress = weekTotal ? ((weekDone / weekTotal) * 100).toFixed(2) : "0.00";
-    const monthProgress = monthTotal ? ((monthDone / monthTotal) * 100).toFixed(2) : "0.00";
-
-    return (
-      <div style={{ marginTop: "2rem" }}>
-        <h3>📈 주간 통계: {weekProgress}%</h3>
-        <h3>📅 월간 통계: {monthProgress}%</h3>
-      </div>
-    );
-  };
-
   return (
     <div style={{ padding: "1rem", maxWidth: "600px", margin: "0 auto" }}>
       <h1>회복 루틴 체크리스트</h1>
-      <h2>📆 오늘: {todayLabel}</h2>
-      <button onClick={resetToday}>오늘 루틴 초기화</button>
-      <h2>✅ 오늘의 달성률: {getProgress()}%</h2>
+      <h2 onClick={() => setShowCalendar(!showCalendar)} style={{ cursor: "pointer" }}>
+        📆 선택된 날짜: {selectedLabel} ⬇️
+      </h2>
+      {showCalendar && (
+        <Calendar
+          onChange={(date) => {
+            setSelectedDate(date);
+            setShowCalendar(false);
+          }}
+          value={selectedDate}
+        />
+      )}
+      {isToday && <button onClick={resetDate}>오늘 루틴 초기화</button>}
+      <h2>✅ {selectedLabel} 달성률: {getProgress()}%</h2>
 
       {checklistItems.map((section) => (
         <div key={section.time} style={{ marginBottom: "1.5rem" }}>
@@ -131,16 +106,15 @@ export default function DailyChecklist() {
             <label key={item} style={{ display: "block" }}>
               <input
                 type="checkbox"
-                checked={checked[todayKey]?.[section.time]?.[item] || false}
+                checked={checked[dateKey]?.[section.time]?.[item] || false}
                 onChange={() => toggleCheck(section.time, item)}
+                disabled={!isToday}
               />{" "}
               {item}
             </label>
           ))}
         </div>
       ))}
-
-      {renderStats()}
     </div>
   );
 }
