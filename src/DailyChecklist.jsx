@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Calendar from "react-calendar";
 import 'react-calendar/dist/Calendar.css';
+import './App.css'; // Apple 스타일 CSS
 
 const checklistItems = [
   {
@@ -45,7 +46,6 @@ export default function DailyChecklist() {
   const todayKey = formatDateKey(today);
   const todayLabel = getTodayLabel(today);
   const selectedLabel = getTodayLabel(selectedDate);
-
   const isToday = dateKey === todayKey;
 
   const toggleCheck = (section, item) => {
@@ -82,39 +82,51 @@ export default function DailyChecklist() {
   };
 
   return (
-    <div style={{ padding: "1rem", maxWidth: "600px", margin: "0 auto" }}>
-      <h1>회복 루틴 체크리스트</h1>
-      <h2 onClick={() => setShowCalendar(!showCalendar)} style={{ cursor: "pointer" }}>
-        📆 선택된 날짜: {selectedLabel} ⬇️
-      </h2>
-      {showCalendar && (
-        <Calendar
-          onChange={(date) => {
-            setSelectedDate(date);
-            setShowCalendar(false);
-          }}
-          value={selectedDate}
-        />
-      )}
-      {isToday && <button onClick={resetDate}>오늘 루틴 초기화</button>}
-      <h2>✅ {selectedLabel} 달성률: {getProgress()}%</h2>
+    <main className="container">
+      <header className="header">
+        <h1>회복 루틴 체크리스트</h1>
+        <h2
+          onClick={() => setShowCalendar(!showCalendar)}
+          style={{ cursor: "pointer" }}
+        >
+          📆 선택된 날짜: {selectedLabel} ⬇️
+        </h2>
+        {showCalendar && (
+          <Calendar
+            onChange={(date) => {
+              setSelectedDate(date);
+              setShowCalendar(false);
+            }}
+            value={selectedDate}
+          />
+        )}
+        {isToday && (
+          <button className="reset-btn" onClick={resetDate}>
+            오늘 루틴 초기화
+          </button>
+        )}
+        <div className="progress-bar">
+          <span>✅ {selectedLabel} 달성률: {getProgress()}%</span>
+        </div>
+      </header>
 
       {checklistItems.map((section) => (
-        <div key={section.time} style={{ marginBottom: "1.5rem" }}>
+        <section key={section.time} className="checklist-section">
           <h3>{section.time}</h3>
           {section.items.map((item) => (
-            <label key={item} style={{ display: "block" }}>
+            <label key={item} className="check-item">
               <input
                 type="checkbox"
                 checked={checked[dateKey]?.[section.time]?.[item] || false}
                 onChange={() => toggleCheck(section.time, item)}
                 disabled={!isToday}
-              />{" "}
+                aria-label={item}
+              />
               {item}
             </label>
           ))}
-        </div>
+        </section>
       ))}
-    </div>
+    </main>
   );
 }
