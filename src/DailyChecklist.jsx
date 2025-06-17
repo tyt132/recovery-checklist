@@ -22,6 +22,16 @@ const getTodayKey = () => {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 };
 
+const getTodayLabel = () => {
+  const now = new Date();
+  return now.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "long",
+  });
+};
+
 const getInitialState = () => {
   const saved = localStorage.getItem("checklist");
   return saved ? JSON.parse(saved) : {};
@@ -31,6 +41,7 @@ export default function DailyChecklist() {
   const [checked, setChecked] = useState(getInitialState());
 
   const todayKey = getTodayKey();
+  const todayLabel = getTodayLabel();
 
   const toggleCheck = (section, item) => {
     const newState = {
@@ -100,8 +111,8 @@ export default function DailyChecklist() {
 
     return (
       <div style={{ marginTop: "2rem" }}>
-        <h3>주간 통계: {weekProgress}%</h3>
-        <h3>월간 통계: {monthProgress}%</h3>
+        <h3>📈 주간 통계: {weekProgress}%</h3>
+        <h3>📅 월간 통계: {monthProgress}%</h3>
       </div>
     );
   };
@@ -109,8 +120,9 @@ export default function DailyChecklist() {
   return (
     <div style={{ padding: "1rem", maxWidth: "600px", margin: "0 auto" }}>
       <h1>회복 루틴 체크리스트</h1>
+      <h2>📆 오늘: {todayLabel}</h2>
       <button onClick={resetToday}>오늘 루틴 초기화</button>
-      <h2>오늘의 달성률: {getProgress()}%</h2>
+      <h2>✅ 오늘의 달성률: {getProgress()}%</h2>
 
       {checklistItems.map((section) => (
         <div key={section.time} style={{ marginBottom: "1.5rem" }}>
